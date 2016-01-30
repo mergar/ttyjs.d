@@ -1,0 +1,60 @@
+#!/bin/sh
+name="ldconfig"
+ldconfig_command="/sbin/ldconfig"
+
+err () {
+	exitval=$1
+	shift
+	echo "$*"
+	exit $exitval
+}
+
+ldconfig_start()
+{
+	local _files _ins
+
+	_ins=
+	ldconfig=${ldconfig_command}
+	if [ -x "${ldconfig_command}" ]; then
+		_LDC="/lib /usr/lib"
+		for i in ${ldconfig_local_dirs}; do
+			if [ -d "${i}" ]; then
+				_files=`find ${i} -type f`
+				if [ -n "${_files}" ]; then
+					ldconfig_paths="${ldconfig_paths} `cat ${_files} | sort -u`"
+				fi
+			fi
+		done
+		for i in ${ldconfig_paths} /etc/ld-elf.so.conf; do
+			if [ -r "${i}" ]; then
+				_LDC="${_LDC} ${i}"
+			fi
+		done
+		${ldconfig} -elf ${_ins} ${_LDC}
+	fi
+}
+
+DIR="/tmp/node"
+ldconfig_paths="${DIR}/lib /usr/local/lib"
+
+ldconfig_start
+
+/tmp/node/bin/node << EOF
+
+var tty = require('tty.js');
+
+var app = tty.createServer({
+  shell: 'csh',
+  users: {
+    foo: 'bar'
+  },
+  port: 8000
+});
+
+app.get('/foo', function(req, res, next) {
+  res.send('bar');
+});
+
+app.listen();
+
+EOF

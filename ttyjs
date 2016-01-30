@@ -1,6 +1,6 @@
 #!/usr/local/bin/cbsd
 #v10.1.0
-MYARG="jname"
+MYARG="jname mode"
 MYOPTARG="user password"
 MYDESC="Launch tty.js in the jail"
 ADDHELP="user= set auth user name\n\
@@ -15,32 +15,18 @@ init $*
 
 . ${jrcconf}
 [ $? -eq 1 ] && err 1 "${MAGENTA}No such jail: ${GREEN}${jname}${NORMAL}"
+[ ${jid} -eq 0 ] && err 1 "${MAGENTA}Not running: ${GREEN}${jname}${NORMAL}"
 
-[ -z "${mode}" ] && mode="show"
-
-formfile="${jailsysdir}/${jname}/helpers/${module}.sqlite"
-[ ! -r ${formfile} ] && err 1 "${MAGENTA}No such formfile: ${GREEN}${formfile}${NORMAL}"
-
-my_module_dir="${moduledir}/puppet.d/module_${module}"
-sitepp="${my_module_dir}/site.pp"
-
-[ ! -r ${sitepp} ] && err 1 "${MAGENTA}No such sitepp: ${GREEN}${sitepp}${NORMAL}"
-
-. ${sitepp}
-
-mksitefile="${moduledir}/puppet.d/modules_${module}/site.pp"
+my_module_dir="${moduledir}/ttyjs.d/root"
 
 . ${workdir}/imghelper.subr
 
 readconf helpers.conf
 
-param=$( cbsdsql ${formfile} SELECT param FROM forms ORDER BY order_id |/usr/bin/xargs )
-load_forms
-
 # todo
 # reload only when changed
 
-puppet_apply()
+run()
 {
 	local _jpuppet_dir
 	local _jpuppet_puppet_src
@@ -89,19 +75,11 @@ puppet_apply()
 	fi
 }
 
-# We check that we all have to be used helpers
-case "${helper_module}" in
-	puppet)
-		jstatus jname=${cbsd_puppet_jname} > /dev/null 2>&1
-		[ $? -ne 1 ] && err 1 "${MAGENTA}No such ${cbsd_puppet_jname} jail. Please obtain cbsdpuppet1 jail from repo or create in by hands${NORMAL}"
-		;;
-esac
 
 
 case "${mode}" in
-	"apply")
-		${ECHO} "${MAGENTA}Applying puppet manifest for: ${GREEN}${module}${NORMAL}"
-		puppet_apply
+	"run")
+		run
 		;;
 	*)
 		generate_manifest
