@@ -34,12 +34,14 @@ ldconfig_start()
 	fi
 }
 
-DIR="/tmp/node"
+DIR="/tmp/ttyjs"
 ldconfig_paths="${DIR}/lib /usr/local/lib"
-
 ldconfig_start
 
-/tmp/node/bin/node << EOF
+cd /tmp/ttyjs/root
+
+#/usr/sbin/daemon -p /tmp/ttyjs.node.lock.pid /usr/bin/lockf -s -t0 /tmp/ttyjs.node.lock /tmp/ttyjs/bin/node << EOF
+/usr/bin/lockf -s -t0 /tmp/ttyjs.node.lock /usr/sbin/daemon -p /tmp/ttyjs.node.lock.pid /tmp/ttyjs/bin/node << EOF
 
 var tty = require('tty.js');
 

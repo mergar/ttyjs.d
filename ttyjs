@@ -28,60 +28,54 @@ readconf helpers.conf
 
 run()
 {
-	local _jpuppet_dir
-	local _jpuppet_puppet_src
-	local _was_started
-
-	_jpuppet_dir="${jaildatadir}/${cbsd_puppet_jname}-${jaildatapref}/usr/local"
-	_jpuppet_puppet_src="${_jpuppet_dir}/bin/puppet"
-
-	[ ! -x "${_jpuppet_puppet_src}" ] && err 1 "${MAGENTA}No such puppet in /usr/local/bin/puppet insinde ${cbsd_puppet_jname}"
-
-	if [ ${jid} -eq 0 ]; then
-		jstart jname=${jname}
-		_was_started=0
-	else
-		_was_started=1
-	fi
+	local _srcjail_dir
 
 	[ $baserw -eq 1 ] && path="${data}"
 
 	[ -z "${path}" ] && err 1 "No path variable"
 
-	[ ! -d ${moduledir}/puppet.d/puppet_root/modules ] && err 1 "No such ${moduledir}/puppet.d/puppet_root/modules"
-	[ ! -d "${path}/usr/local/etc/puppet/modules" ] && mkdir -p ${path}/usr/local/etc/puppet/modules
+	[ ! -f ${moduledir}/ttyjs.d/root/node_modules/tty.js/index.js ] && err 1 "No such ${moduledir}/ttyjs.d/root/node_modules/tty.js/index.js"
 
-	# first - mount puppet jail source
-	[ ! -d "${path}/tmp/puppet" ] && mkdir -p ${path}/tmp/puppet
-	/sbin/mount -t nullfs -o ro ${_jpuppet_dir} ${path}/tmp/puppet
-	/sbin/mount -t nullfs -o ro ${moduledir}/puppet.d/puppet_root ${path}/tmp/puppet/etc/puppet
+	_jaildata="${jaildatadir}/ttyjs1-${jaildatapref}/usr/local"
 
-	[ $? -ne 0 ] && err 1 "Error mount ${moduledir}/puppet.d/puppet_root/modules to /usr/local/etc/puppet/modules inside jail"
+	[ ! -f "${_jaildata}/bin/node" ] && err 1 "No such node in ${_jaildata}/bin"
 
-	generate_manifest > ${path}/tmp/${helpername}.pp
-	generate_hieradata > ${path}/tmp/common.yaml
+	[ ! -d "${path}/tmp/ttyjs" ] && /bin/mkdir -p ${path}/tmp/ttyjs
+	[ ! -d "${_jaildata}/root" ] && /bin/mkdir -p ${_jaildata}/root
 
-	${ECHO} "${MAGENTA}Puppet in progress: ${GREEN}jexec for /tmp/${helpername}.pp${NORMAL}"
-	echo "jexec jname=${jname} /tmp/puppet/etc/puppet/puppetcbsd /tmp/${helpername}.pp"
-	jexec jname=${jname} /tmp/puppet/etc/puppet/puppetcbsd /tmp/${helpername}.pp
-
-	/sbin/umount ${path}/tmp/puppet/etc/puppet
-	/sbin/umount ${path}/tmp/puppet
-	if [ ${_was_started} -eq 0 ]; then
-		jstop jname=${jname}
-		jcleanup jname=${jname}
-	else
-		[ -n "${have_restart}" ] && jexec jname=$jname ${have_restart}
+	if ! is_mounted ${path}/tmp/ttyjs; then
+		/sbin/mount -t nullfs -o ro ${_jaildata} ${path}/tmp/ttyjs
+		[ $? -ne 0 ] && err 1 "Error mount ${_jaildata} to /tmp/ttyjs inside jail"
 	fi
+
+	[ ! -d "${_jaildata}/root" ] && /bin/mkdir -p ${_jaildata}/root
+
+	if ! is_mounted ${path}/tmp/ttyjs/root; then
+		/sbin/mount -t nullfs -o ro ${moduledir}/ttyjs.d/root ${path}/tmp/ttyjs/root
+		if [ $? -ne 0 ]; then
+			/sbin/umount ${path}/tmp/ttyjs > /dev/null 2>&1
+			err 1 "Error mount ${moduledir}/ttyjs.d/ttyjs/root to /tmp/ttyjs inside jail"
+		fi
+	fi
+
+	${ECHO} "${MAGENTA}ttyjs in progress: ${GREEN}jexec for /tmp/ttyjs${NORMAL}"
+#	echo "jexec jname=${jname} /tmp/ttyjs/etc/ttyjs/ttyjscbsd /tmp/${helpername}.pp"
+	jexec jname=${jname} /tmp/ttyjs/root/run
 }
 
+stop()
+{
 
+
+}
 
 case "${mode}" in
-	"run")
+	run)
 		run
 		;;
+	stop)
+		stop
+		;;
 	*)
-		generate_manifest
 		;;
 esac
